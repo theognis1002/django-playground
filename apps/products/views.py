@@ -4,6 +4,7 @@ from django.db.models import Avg, F, Sum
 from django.shortcuts import render
 
 from .models import Customer, LineItem, Order, Product
+from django.db import transaction
 
 
 def index(request):
@@ -39,3 +40,20 @@ def index(request):
         print(order.customer.full_name)
 
     return render(request, "products/index.html", {"orders": orders})
+
+
+def atomic_test(request):
+    with transaction.atomic():
+        orders = Order.objects.select_related("customer").get(pk=1)
+        print(orders.coupon_code)
+        orders.coupon_code = "DISCOUNT2021"
+        orders.save()
+        print(orders.coupon_code)
+        try:
+            # pass
+            failed_query = Order.objects.select_related("customer").get(pk=999999)
+        except Order.DoesNotExist:
+            print("Failed")
+            transaction.set_rollback(True)
+
+    return render(request, "products/index.html", {"orders": [orders]})
