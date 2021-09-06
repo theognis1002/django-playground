@@ -8,5 +8,10 @@
 	</head>
 	<body>
 		<h3>Django Playground</h3>
+		<ul>
+			{% for order in orders%}
+			<li>{{ order }}</li>
+			{% endfor %}
+		</ul>
 	</body>
 </html>

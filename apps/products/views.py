@@ -8,11 +8,12 @@ from .models import Customer, LineItem, Order, Product
 
 def index(request):
     """
-    line_items = LineItem.objects.annotate(sub_total=F('product__price') * F('quantity'))
+    line_items = LineItem.objects.select_related("product").annotate(
+        sub_total=F("product__price") * F("quantity")
+    )
     for line_item in line_items:
         print(line_item.quantity, line_item.product.price, line_item.sub_total)
     """
-
     """
     result = LineItem.objects.aggregate(total=Avg(F('product__price') * F('quantity')))
     print(result['total'])
@@ -32,10 +33,9 @@ def index(request):
         print(order.order_date, order.shipped_date)
     """
 
-    """
     orders = Order.objects.select_related("customer").all()
 
     for order in orders:
-        print(order.customer.first_name)
-    """
-    return render(request, "products/index.html")
+        print(order.customer.full_name)
+
+    return render(request, "products/index.html", {"orders": orders})
