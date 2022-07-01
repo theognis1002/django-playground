@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "products",
     "debug_toolbar",
     "django_extensions",
+    "django_migration_vis",
 ]
 
 MIDDLEWARE = [
