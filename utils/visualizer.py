@@ -118,7 +118,7 @@ class TimeBasedMigrationLoader(MigrationLoader):
 
 
 class MigrationVisualizer:
-    def __init__(self, *apps, **options):
+    def __init__(self, *apps, output_format=None, **options):
         self._censor_cache = {}
         self._censor_enabled = bool(options.get("censor", False))
         if self._censor_enabled:
@@ -130,7 +130,7 @@ class MigrationVisualizer:
             date=options.get("date", datetime.utcnow()),  # TODO: use no connection?
         ).graph
         comment = options.get("comment")
-        self.picture = Digraph(comment=comment)
+        self.picture = Digraph(comment=comment, format=output_format)
         save_loc = options.get("filename", "migration-dep-tree")
         self._render(save_loc)
 
