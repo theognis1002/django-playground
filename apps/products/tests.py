@@ -1,8 +1,11 @@
+import pytest
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth.models import User
-from rest_framework.test import APITestCase
 from rest_framework import status
+from rest_framework.test import APITestCase
+
+pytestmark = pytest.mark.django_db
 
 
 class TestAuthTestView(TestCase):
@@ -17,7 +20,7 @@ class TestAuthTestView(TestCase):
         assert response.status_code == status.HTTP_200_OK
 
 
-class TestContactAPI(APITestCase):
+class TestUsersAPI(APITestCase):
     def test_get_request_users_view(self):
         response = self.client.get(reverse("users-list"))
         assert response.status_code == status.HTTP_200_OK
@@ -32,3 +35,16 @@ class TestContactAPI(APITestCase):
         assert response.status_code == status.HTTP_201_CREATED
         assert User.objects.count() == 1
         assert User.objects.first().username == data["username"]
+
+
+def test_does_not_make_unnecessary_queries(client, django_assert_max_num_queries):
+    with django_assert_max_num_queries(2):
+        client.get(reverse("users-list"))
+
+
+class TestPerfViews:
+    def test_does_not_make_unnecessary_queries(
+        self, client, django_assert_max_num_queries
+    ):
+        with django_assert_max_num_queries(2):
+            client.get(reverse("users-list"))
