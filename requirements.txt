@@ -6,6 +6,7 @@ Django==3.2.7
 django-debug-toolbar==3.2.2
 django-extensions==3.1.5
 django-migration-vis==2.0.1
+djangorestframework==3.13.1
 Faker==8.12.1
 graphviz==0.20
 iniconfig==1.1.1
