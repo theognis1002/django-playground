@@ -1,10 +1,11 @@
 from datetime import timedelta
 
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Avg, F, Sum
 from django.shortcuts import render
 
 from .models import Customer, LineItem, Order, Product
-from django.db import transaction
 
 
 def index(request):
@@ -42,6 +43,7 @@ def index(request):
     return render(request, "products/index.html", {"orders": orders})
 
 
+@login_required
 def atomic_test(request):
     with transaction.atomic():
         orders = Order.objects.select_related("customer").get(pk=1)
@@ -57,3 +59,8 @@ def atomic_test(request):
             transaction.set_rollback(True)
 
     return render(request, "products/index.html", {"orders": [orders]})
+
+
+@login_required
+def test_view(request):
+    return render(request, "products/index.html", {"orders": []})
