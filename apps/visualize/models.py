@@ -196,9 +196,12 @@ class MigrationSnapshot(models.Model):
         (X11, X11.upper()),
     ]
     output_format = models.CharField(
-        _("Visualization File Output Format"), max_length=10, default=GV
+        _("Visualization File Output Format"),
+        max_length=10,
+        choices=FORMAT_CHOICES,
+        default=GV,
     )
-    output_file = models.FileField(upload_to="migration_vis/")
+    output_file = models.FileField(upload_to="migration_vis/", blank=True, null=True)
     created_at = models.DateField(auto_now_add=True)
     modified_at = models.DateField(auto_now=True)
 
@@ -206,18 +209,23 @@ class MigrationSnapshot(models.Model):
         return f"Snapshot #: {self.pk}"
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
         if not self.output_file:
-            file_loc = f"/tmp/migrate_output.{self.output_format}"
+            file_loc = f"migrate_output"
+            file_name = f"{file_loc}.{self.output_format}"
+
             try:
-                MigrationVisualizer(
+                visualizer = MigrationVisualizer(
                     None, filename=None, output_format=self.output_format
-                ).render(save_loc=file_loc)
-                with open(file_loc, "rb") as f:
-                    self.output_file.save("test", File(f))
+                )
+                visualizer.render(save_loc=file_loc)
+
+                with open(file_name, "rb") as f:
+                    self.output_file.save(file_name, File(f))
 
             finally:
-                os.remove(file_loc)
+                os.remove(file_name)
+
+        super().save(*args, **kwargs)
 
 
 """
