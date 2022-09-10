@@ -197,16 +197,16 @@ class MigrationVisualizer:
             else:
                 self._add_edges(dep, self._get_tuple(node))
 
-    def render(self, save_loc=None):
+    def render(self, save_loc=None, view=False, **kwargs):
         if save_loc is None:
             save_loc = self.filename
 
         self._create_digraph()
         if save_loc:
-            self.picture.render(save_loc, view=False)
+            self.picture.render(save_loc, view=view, **kwargs)
         else:
             with NamedTemporaryFile() as temp:
-                self.picture.render(temp.name, view=True)
+                self.picture.render(temp.name, view=True, **kwargs)
 
         # temp = NamedTemporaryFile()
         # self.picture.render(temp.name, view=False)

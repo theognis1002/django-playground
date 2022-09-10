@@ -201,6 +201,7 @@ class MigrationSnapshot(models.Model):
         choices=FORMAT_CHOICES,
         default=GV,
     )
+    graph_source = models.TextField(blank=True, null=True)
     output_file = models.FileField(upload_to="migration_vis/", blank=True, null=True)
     created_at = models.DateField(auto_now_add=True)
     modified_at = models.DateField(auto_now=True)
@@ -210,22 +211,25 @@ class MigrationSnapshot(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.output_file:
-            file_loc = f"migrate_output"
-            file_name = f"{file_loc}.{self.output_format}"
-
-            try:
-                visualizer = MigrationVisualizer(
-                    None, filename=None, output_format=self.output_format
-                )
-                visualizer.render(save_loc=file_loc)
-
-                with open(file_name, "rb") as f:
-                    self.output_file.save(file_name, File(f))
-
-            finally:
-                os.remove(file_name)
-
+            self._record_snapshot()
         super().save(*args, **kwargs)
+
+    def _record_snapshot(self):
+        file_loc = f"migrate_output"
+        file_name = f"{file_loc}.{self.output_format}"
+
+        try:
+            visualizer = MigrationVisualizer(
+                None, filename=None, output_format=self.output_format
+            )
+            visualizer.render(save_loc=file_loc)
+            self.graph_source = str(visualizer.source)
+            with open(file_name, "rb") as f:
+                self.output_file.save(file_name, File(f))
+
+        finally:
+            os.remove(file_loc)
+            os.remove(file_name)
 
 
 """

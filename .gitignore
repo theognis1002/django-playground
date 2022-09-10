@@ -133,3 +133,5 @@ dmypy.json
 
 # Custom
 migration-dep-tree*
+migration_vis/*
+!migration_vis/.gitkeep
