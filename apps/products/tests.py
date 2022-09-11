@@ -48,3 +48,27 @@ class TestPerfViews:
     ):
         with django_assert_max_num_queries(2):
             client.get(reverse("users-list"))
+
+
+@pytest.fixture
+def api_client():
+    from rest_framework.test import APIClient
+
+    return APIClient()
+
+
+class TestUsersSecondApproachAPI:
+    def test_get_request_users_view(self, api_client):
+        response = api_client.get(reverse("users-list"))
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_post_request_users_view(self, api_client):
+        data = {
+            "username": "Juliana1002",
+            "email": "johndoe@gmail.com",
+            "password": "FakePassword1234567890!",
+        }
+        response = api_client.post(reverse("users-list"), data=data)
+        assert response.status_code == status.HTTP_201_CREATED
+        assert User.objects.count() == 1
+        assert User.objects.first().username == data["username"]
