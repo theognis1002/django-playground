@@ -77,6 +77,15 @@ class TestUsersSecondApproachAPI:
 class TestCasePytest(TestCase):
     def setUp(self):
         self.instance = 3
+        User.objects.create(
+            username="test", email="test@gmail.com", password="password"
+        )
 
     def test_setup_works(self):
         assert self.instance == 3
+
+    def test_setup_1(self):
+        assert User.objects.get(email="test@gmail.com")
+
+    def test_setup_2(self):
+        assert User.objects.all().count() == 1
