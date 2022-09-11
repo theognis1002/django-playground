@@ -72,3 +72,11 @@ class TestUsersSecondApproachAPI:
         assert response.status_code == status.HTTP_201_CREATED
         assert User.objects.count() == 1
         assert User.objects.first().username == data["username"]
+
+
+class TestCasePytest(TestCase):
+    def setUp(self):
+        self.instance = 3
+
+    def test_setup_works(self):
+        assert self.instance == 3
