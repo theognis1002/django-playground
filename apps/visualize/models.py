@@ -210,7 +210,7 @@ class MigrationSnapshot(models.Model):
         return f"Snapshot #: {self.pk}"
 
     def save(self, *args, **kwargs):
-        if not self.output_file:
+        if self._state.adding or not self.output_file:
             self._record_snapshot()
         super().save(*args, **kwargs)
 
@@ -226,7 +226,6 @@ class MigrationSnapshot(models.Model):
             self.graph_source = str(visualizer.source)
             with open(file_name, "rb") as f:
                 self.output_file.save(file_name, File(f))
-
         finally:
             os.remove(file_loc)
             os.remove(file_name)
