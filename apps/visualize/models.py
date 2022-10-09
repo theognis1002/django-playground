@@ -1,6 +1,6 @@
 import os
-from django.core.files import File
 
+from django.core.files import File
 from django.db import models
 from django.utils.translation import gettext as _
 

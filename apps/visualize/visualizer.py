@@ -1,16 +1,17 @@
 import random
-from datetime import datetime
 from tempfile import NamedTemporaryFile
+
 from django.db import connection
 from django.db.migrations.exceptions import NodeNotFoundError
 from django.db.migrations.graph import MigrationGraph
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.recorder import MigrationRecorder
+from django.utils import timezone
 from graphviz import Digraph
 
 
 class TimeBasedMigrationLoader(MigrationLoader):
-    def __init__(self, *args, date=datetime.utcnow(), **kwargs):
+    def __init__(self, *args, date=timezone.now(), **kwargs):
         self.date = date
         super().__init__(*args, **kwargs)
 
@@ -125,11 +126,11 @@ class MigrationVisualizer:
         self._censor_enabled = bool(options.get("censor", False))
         if self._censor_enabled:
             random.seed(
-                options.get("random_seed", datetime.now())
+                options.get("random_seed", timezone.now())
             )  # TODO: timezone.now()? UTC?
         self.graph = TimeBasedMigrationLoader(
             connection,
-            date=options.get("date", datetime.utcnow()),  # TODO: use no connection?
+            date=options.get("date", timezone.now()),  # TODO: use no connection?
         ).graph
         comment = options.get("comment")
         self.picture = Digraph(comment=comment, format=output_format)

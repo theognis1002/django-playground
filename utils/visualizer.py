@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 from tempfile import NamedTemporaryFile
+
 from django.db import connection
 from django.db.migrations.exceptions import NodeNotFoundError
 from django.db.migrations.graph import MigrationGraph
