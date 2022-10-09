@@ -28,7 +28,7 @@ class TimeBasedMigrationLoader(MigrationLoader):
         else:
             recorder = MigrationRecorder(self.connection)
             filtered_migration_qs = recorder.migration_qs.filter(applied__lt=self.date)
-            print(filtered_migration_qs)
+
             self.applied_migrations = (
                 {
                     (migration.app, migration.name): migration
@@ -212,7 +212,6 @@ class MigrationVisualizer:
         # self.picture.render(temp.name, view=False)
         # temp.seek(0)
         # return temp
-        # print(self.source)
 
 
 """

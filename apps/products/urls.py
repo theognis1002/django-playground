@@ -13,7 +13,3 @@ urlpatterns = [
 router = routers.SimpleRouter()
 router.register(r"users", UserViewSet, basename="users")
 urlpatterns += router.urls
-
-import pprint
-
-pprint.pprint(router.get_urls())
