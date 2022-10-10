@@ -1,8 +1,11 @@
+import os
+from datetime import datetime
 from tempfile import NamedTemporaryFile
+from typing import Tuple
 
 from django.db import connection
 from django.db.migrations.exceptions import NodeNotFoundError
-from django.db.migrations.graph import MigrationGraph
+from django.db.migrations.graph import MigrationGraph, Node
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
@@ -10,11 +13,11 @@ from graphviz import Digraph
 
 
 class TimeBasedMigrationLoader(MigrationLoader):
-    def __init__(self, *args, date=timezone.now(), **kwargs):
+    def __init__(self, *args, date: datetime = timezone.now(), **kwargs) -> None:
         self.date = date
         super().__init__(*args, **kwargs)
 
-    def build_graph(self):
+    def build_graph(self) -> None:
         """
         Build a migration dependency graph using both the disk and database.
         You'll need to rebuild the graph if you apply migrations. This isn't
@@ -86,7 +89,7 @@ class TimeBasedMigrationLoader(MigrationLoader):
         # Ensure the graph is consistent.
         try:
             self.graph.validate_consistency()
-        except NodeNotFoundError as exc:
+        except NodeNotFoundError as excp:
             # Check if the missing node could have been replaced by any squash
             # migration but wasn't because the squash migration was partially
             # applied before. In that case raise a more understandable exception
@@ -97,8 +100,8 @@ class TimeBasedMigrationLoader(MigrationLoader):
                 for replaced in migration.replaces:
                     reverse_replacements.setdefault(replaced, set()).add(key)
             # Try to reraise exception with more detail.
-            if exc.node in reverse_replacements:
-                candidates = reverse_replacements.get(exc.node, set())
+            if excp.node in reverse_replacements:
+                candidates = reverse_replacements.get(excp.node, set())
                 is_replaced = any(
                     candidate in self.graph.nodes for candidate in candidates
                 )
@@ -109,78 +112,80 @@ class TimeBasedMigrationLoader(MigrationLoader):
                         "Django tried to replace migration {1}.{2} with any of [{3}] "
                         "but wasn't able to because some of the replaced migrations "
                         "are already applied.".format(
-                            exc.origin, exc.node[0], exc.node[1], tries
+                            excp.origin, excp.node[0], excp.node[1], tries
                         ),
-                        exc.node,
-                    ) from exc
+                        excp.node,
+                    ) from excp
             raise
         self.graph.ensure_not_cyclic()
 
 
 class MigrationVisualizer:
     def __init__(
-        self, *apps, output_format=None, filename="migration-tree-dep", **options
-    ):
+        self,
+        *,
+        output_format: str = "pdf",
+        filename: str = "migration_snapshot",
+        delimiter: str = "/",
+        **options: dict,
+    ) -> None:
         self.graph = TimeBasedMigrationLoader(
-            connection,
-            date=options.get("date", timezone.now()),  # TODO: use no connection?
+            options.get("connection", connection),
+            date=options.get("date", timezone.now()),
         ).graph
-        comment = options.get("comment")
-        self.picture = Digraph(comment=comment, format=output_format)
-        self.filename = filename
+
+        self.delimiter = delimiter
+        self.filename = os.path.splitext(filename)[0]
+        self.digraph = Digraph(comment=options.get("comment"), format=output_format)
 
     @property
-    def source(self):
-        return self.picture.source
+    def source(self) -> str:
+        return self.digraph.source
 
-    def _create_digraph(self):
-        nodes = sorted(self.graph.nodes.values(), key=self._get_tuple)
+    def _construct_digraph(self) -> None:
+        nodes = sorted(self.graph.nodes.values(), key=self._node_details)
         for node in nodes:
             self._add_node(node)
         for node in nodes:
-            self._add_dependencies(node)
+            self._add_deps(node)
 
-    def _style_label(self, tupled_node):
-        return "/".join(tupled_node)
+    def _format_label(self, tupled_node: Tuple[str, str]) -> str:
+        return f"{self.delimiter}".join(tupled_node)
 
     @staticmethod
-    def _get_tuple(node):
+    def _node_details(node: Node) -> Tuple[str, str]:
         return (node.app_label, node.name)
 
-    def _add_node(self, node):
-        node_label = self._style_label(self._get_tuple(node))
-        self.picture.node(node_label, node_label)
+    def _add_node(self, node: Node) -> None:
+        node_label = self._format_label(self._node_details(node))
+        self.digraph.node(node_label, node_label)
 
-    def _add_edges(self, nodeTo, nodeFrom):
-        self.picture.edge(self._style_label(nodeFrom), self._style_label(nodeTo))
+    def _add_edges(self, node_to: Node, node_from: Node) -> None:
+        self.digraph.edge(self._format_label(node_from), self._format_label(node_to))
 
-    def _add_dependencies(self, node):
+    def _add_deps(self, node: Node) -> None:
         for dep in node.dependencies:
             if dep[1] == "__first__":
-                self._add_edges(self.graph.root_nodes(dep[0])[0], self._get_tuple(node))
+                self._add_edges(
+                    self.graph.root_nodes(dep[0])[0], self._node_details(node)
+                )
             elif dep[1] == "__latest__":
-                self._add_edges(self.graph.leaf_nodes(dep[0])[0], self._get_tuple(node))
+                self._add_edges(
+                    self.graph.leaf_nodes(dep[0])[0], self._node_details(node)
+                )
             else:
-                self._add_edges(dep, self._get_tuple(node))
+                self._add_edges(dep, self._node_details(node))
 
-    def render(self, save_loc=None, view=False, **kwargs):
-        if save_loc is None:
-            save_loc = self.filename
-
-        self._create_digraph()
-        if save_loc:
-            self.picture.render(save_loc, view=view, **kwargs)
-        else:
+    def render(self, *, view: bool = False, temp_file: bool = False, **kwargs) -> None:
+        self._construct_digraph()
+        if temp_file is True:
             with NamedTemporaryFile() as temp:
-                self.picture.render(temp.name, view=True, **kwargs)
-
-        # temp = NamedTemporaryFile()
-        # self.picture.render(temp.name, view=False)
-        # temp.seek(0)
-        # return temp
+                self.digraph.render(temp.name, view=True, **kwargs)
+        else:
+            self.digraph.render(self.filename, view=view, **kwargs)
 
 
 """
 from visualize.visualizer import MigrationVisualizer
-file = MigrationVisualizer(None, filename=None).render()
+file = MigrationVisualizer().render(temp_file=True)
 """

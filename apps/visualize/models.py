@@ -229,8 +229,3 @@ class MigrationSnapshot(models.Model):
         finally:
             os.remove(file_loc)
             os.remove(file_name)
-
-
-"""
-MigrationSnapshot.objects.create(output_format='gv')
-"""
