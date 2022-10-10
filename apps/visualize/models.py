@@ -4,7 +4,7 @@ from django.core.files import File
 from django.db import models
 from django.utils.translation import gettext as _
 
-from .visualizer import MigrationVisualizer
+from .visualizer import MigrationRenderer
 
 """
 FORMATS = [
@@ -219,7 +219,7 @@ class MigrationSnapshot(models.Model):
         file_name = f"{file_loc}.{self.output_format}"
 
         try:
-            visualizer = MigrationVisualizer(
+            visualizer = MigrationRenderer(
                 None, filename=None, output_format=self.output_format
             )
             visualizer.render(save_loc=file_loc)

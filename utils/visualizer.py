@@ -118,7 +118,7 @@ class TimeBasedMigrationLoader(MigrationLoader):
         self.graph.ensure_not_cyclic()
 
 
-class MigrationVisualizer:
+class MigrationRenderer:
     def __init__(self, *apps, output_format=None, **options):
         self._censor_cache = {}
         self._censor_enabled = bool(options.get("censor", False))

@@ -1,6 +1,6 @@
-from utils.visualizer import MigrationVisualizer
+from utils.visualizer import MigrationRenderer
 
 
 def run():
-    v = MigrationVisualizer(output_format="jpg")
+    v = MigrationRenderer(output_format="jpg")
     print(v)

@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from tempfile import NamedTemporaryFile
-from typing import Tuple
+from typing import Any, Tuple, Union
 
 from django.db import connection
 from django.db.migrations.exceptions import NodeNotFoundError
@@ -13,8 +13,16 @@ from graphviz import Digraph
 
 
 class TimeBasedMigrationLoader(MigrationLoader):
-    def __init__(self, *args, date: datetime = timezone.now(), **kwargs) -> None:
-        self.date = date
+    def __init__(
+        self,
+        *args: Any,
+        date_end: datetime = timezone.now(),
+        **kwargs: bool,
+    ) -> None:
+        if not isinstance(date_end, datetime):
+            raise ValueError("Datetime argument must be a datetime object")
+
+        self.date_end = date_end
         super().__init__(*args, **kwargs)
 
     def build_graph(self) -> None:
@@ -26,28 +34,23 @@ class TimeBasedMigrationLoader(MigrationLoader):
         # Load disk data
         self.load_disk()
         # Load database data
-        if self.connection is None:
-            self.applied_migrations = {}
-        else:
-            recorder = MigrationRecorder(self.connection)
-            filtered_migration_qs = recorder.migration_qs.filter(applied__lt=self.date)
+        recorder = MigrationRecorder(self.connection)
+        filtered_migration_qs = recorder.migration_qs.filter(applied__lt=self.date_end)
 
-            self.applied_migrations = (
-                {
-                    (migration.app, migration.name): migration
-                    for migration in filtered_migration_qs
-                }
-                if recorder.has_table()
-                else {}
-            )
+        self.applied_migrations = (
+            {
+                (migration.app, migration.name): migration
+                for migration in filtered_migration_qs
+            }
+            if recorder.has_table()
+            else {}
+        )
 
         # To start, populate the migration graph with nodes for ALL migrations
         # and their dependencies. Also make note of replacing migrations at this step.
-        # TODO: filter disk migrations based if they are in `self.applied_migrations``
         self.graph = MigrationGraph()
         self.replacements = {}
         for key, migration in self.disk_migrations.copy().items():
-            # TODO: check this... remove from disk migrations if not applied in db
             if key not in self.applied_migrations:
                 del self.disk_migrations[key]
                 continue
@@ -120,7 +123,7 @@ class TimeBasedMigrationLoader(MigrationLoader):
         self.graph.ensure_not_cyclic()
 
 
-class MigrationVisualizer:
+class MigrationRenderer:
     def __init__(
         self,
         *,
@@ -131,33 +134,31 @@ class MigrationVisualizer:
     ) -> None:
         self.graph = TimeBasedMigrationLoader(
             options.get("connection", connection),
-            date=options.get("date", timezone.now()),
+            date_end=options.get("date_end", timezone.now()),
         ).graph
 
         self.delimiter = delimiter
         self.filename = os.path.splitext(filename)[0]
-        self.digraph = Digraph(comment=options.get("comment"), format=output_format)
+        self.digraph = Digraph(comment=options.get("caption"), format=output_format)
 
     @property
     def source(self) -> str:
         return self.digraph.source
 
     def _construct_digraph(self) -> None:
-        nodes = sorted(self.graph.nodes.values(), key=self._node_details)
-        for node in nodes:
+        for node in sorted(self.graph.nodes.values(), key=self._get_node_details):
             self._add_node(node)
-        for node in nodes:
             self._add_deps(node)
 
     def _format_label(self, tupled_node: Tuple[str, str]) -> str:
         return f"{self.delimiter}".join(tupled_node)
 
     @staticmethod
-    def _node_details(node: Node) -> Tuple[str, str]:
+    def _get_node_details(node: Node) -> Tuple[str, str]:
         return (node.app_label, node.name)
 
     def _add_node(self, node: Node) -> None:
-        node_label = self._format_label(self._node_details(node))
+        node_label = self._format_label(self._get_node_details(node))
         self.digraph.node(node_label, node_label)
 
     def _add_edges(self, node_to: Node, node_from: Node) -> None:
@@ -165,18 +166,20 @@ class MigrationVisualizer:
 
     def _add_deps(self, node: Node) -> None:
         for dep in node.dependencies:
-            if dep[1] == "__first__":
+            if dep[-1] == "__first__":
                 self._add_edges(
-                    self.graph.root_nodes(dep[0])[0], self._node_details(node)
+                    self.graph.root_nodes(dep[0])[0], self._get_node_details(node)
                 )
-            elif dep[1] == "__latest__":
+            elif dep[-1] == "__latest__":
                 self._add_edges(
-                    self.graph.leaf_nodes(dep[0])[0], self._node_details(node)
+                    self.graph.leaf_nodes(dep[0])[0], self._get_node_details(node)
                 )
             else:
-                self._add_edges(dep, self._node_details(node))
+                self._add_edges(dep, self._get_node_details(node))
 
-    def render(self, *, view: bool = False, temp_file: bool = False, **kwargs) -> None:
+    def render(
+        self, *, view: bool = False, temp_file: bool = False, **kwargs: Union[bool, str]
+    ) -> None:
         self._construct_digraph()
         if temp_file is True:
             with NamedTemporaryFile() as temp:
@@ -186,6 +189,13 @@ class MigrationVisualizer:
 
 
 """
-from visualize.visualizer import MigrationVisualizer
-file = MigrationVisualizer().render(temp_file=True)
+from visualize.visualizer import MigrationRenderer
+file = MigrationRenderer().render(temp_file=True)
+"""
+"""
+from datetime import timedelta
+from django.utils import timezone
+from visualize.visualizer import MigrationRenderer
+date_end = timezone.now() - timedelta(days=365)
+file = MigrationRenderer(date_end=date_end).render(temp_file=True)
 """
