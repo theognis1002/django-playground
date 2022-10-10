@@ -1,4 +1,3 @@
-import random
 from tempfile import NamedTemporaryFile
 
 from django.db import connection
@@ -122,12 +121,6 @@ class MigrationVisualizer:
     def __init__(
         self, *apps, output_format=None, filename="migration-tree-dep", **options
     ):
-        self._censor_cache = {}
-        self._censor_enabled = bool(options.get("censor", False))
-        if self._censor_enabled:
-            random.seed(
-                options.get("random_seed", timezone.now())
-            )  # TODO: timezone.now()? UTC?
         self.graph = TimeBasedMigrationLoader(
             connection,
             date=options.get("date", timezone.now()),  # TODO: use no connection?
@@ -147,35 +140,7 @@ class MigrationVisualizer:
         for node in nodes:
             self._add_dependencies(node)
 
-    @staticmethod
-    def _censor(text):
-        res = []
-        for word in text.split("_"):
-            if word not in ("auto", "initial", "squashed"):
-                chars = []
-                for c in word:
-                    if c not in "0123456789_":
-                        c = chr(random.randint(ord("a"), ord("z")))
-                    chars.append(c)
-                word = "".join(chars)
-            res.append(word)
-        return "_".join(res)
-
-    def _censor_using_cache(self, text):
-        try:
-            return self._censor_cache[text]
-        except KeyError:
-            while True:
-                censored = self._censor(text)
-                if censored not in self._censor_cache.values():
-                    break
-            self._censor_cache[text] = censored
-            return censored
-
     def _style_label(self, tupled_node):
-        if self._censor_enabled:
-            tupled_node = [self._censor_using_cache(e) for e in tupled_node]
-
         return "/".join(tupled_node)
 
     @staticmethod
