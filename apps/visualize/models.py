@@ -4,7 +4,7 @@ from django.core.files import File
 from django.db import models
 from django.utils.translation import gettext as _
 
-from .visualizer import MigrationRenderer
+from .visualizer import MigrationHistoryUtil
 from django.conf import settings
 
 
@@ -145,10 +145,10 @@ if getattr(settings, "MIGRATION_SNAPSHOT_MODEL", True):
             file_name = f"{file_loc}.{self.output_format}"
 
             try:
-                visualizer = MigrationRenderer(
+                visualizer = MigrationHistoryUtil(
                     None, filename=None, output_format=self.output_format
                 )
-                visualizer.render(save_loc=file_loc)
+                visualizer.create_snapshot(save_loc=file_loc)
                 self.graph_source = str(visualizer.source)
                 with open(file_name, "rb") as f:
                     self.output_file.save(file_name, File(f))

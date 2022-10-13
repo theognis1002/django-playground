@@ -123,7 +123,7 @@ class TimeBasedMigrationLoader(MigrationLoader):
         self.graph.ensure_not_cyclic()
 
 
-class MigrationRenderer:
+class MigrationHistoryUtil:
     def __init__(
         self,
         *,
@@ -177,7 +177,7 @@ class MigrationRenderer:
             else:
                 self._add_edges(dep, self._get_node_details(node))
 
-    def render(
+    def create_snapshot(
         self, *, view: bool = False, temp_file: bool = False, **kwargs: Union[bool, str]
     ) -> None:
         self._construct_digraph()
@@ -189,13 +189,13 @@ class MigrationRenderer:
 
 
 """
-from visualize.visualizer import MigrationRenderer
-file = MigrationRenderer().render(temp_file=True)
+from visualize.visualizer import MigrationHistoryUtil
+file = MigrationHistoryUtil().create_snapshot(temp_file=True)
 """
 """
 from datetime import timedelta
 from django.utils import timezone
-from visualize.visualizer import MigrationRenderer
+from visualize.visualizer import MigrationHistoryUtil
 date_end = timezone.now() - timedelta(days=365)
-file = MigrationRenderer(date_end=date_end).render(temp_file=True)
+file = MigrationHistoryUtil(date_end=date_end).create_snapshot(temp_file=True)
 """
