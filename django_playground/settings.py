@@ -30,11 +30,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "products",
-    "visualize",
     "rest_framework",
     "debug_toolbar",
     "django_extensions",
-    "django_migration_vis",
 ]
 
 MIDDLEWARE = [
