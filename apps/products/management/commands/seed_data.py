@@ -1,6 +1,6 @@
 import random
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from faker import Faker
 from products.models import Customer, LineItem, Order, Product
 
@@ -24,26 +24,20 @@ def add_customers():
 def add_orders():
     customers = Customer.objects.all()
 
-    for _ in range(5000):
+    for _ in range(500):
         # choose a random customer
         customer = random.choice(customers)
 
         ordered_date = fake.date_time_this_year()
-        shipped_date = random.choices(
-            [None, fake.date_time_between(start_date=ordered_date)], [10, 90]
-        )[0]
+        shipped_date = random.choices([None, fake.date_time_between(start_date=ordered_date)], [10, 90])[0]
 
         # choose either random None or random date for delivered and shipped
         delivered_date = None
         if shipped_date:
-            delivered_date = random.choices(
-                [None, fake.date_time_between(start_date=shipped_date)], [50, 50]
-            )[0]
+            delivered_date = random.choices([None, fake.date_time_between(start_date=shipped_date)], [50, 50])[0]
 
         # choose either random None or one of three coupon codes
-        coupon_code = random.choices(
-            [None, "50OFF", "FREESHIPPING", "BUYONEGETONE"], [80, 10, 5, 5]
-        )[0]
+        coupon_code = random.choices([None, "50OFF", "FREESHIPPING", "BUYONEGETONE"], [80, 10, 5, 5])[0]
 
         order = Order(
             customer_id=customer.id,
@@ -74,9 +68,7 @@ def add_order_products():
         purchased_products = random.sample(list(products), k)
         # order.products.add(*purchased_products)
         for product in purchased_products:
-            line_item = LineItem(
-                order=order, product=product, quantity=random.randint(1, 5)
-            )
+            line_item = LineItem(order=order, product=product, quantity=random.randint(1, 5))
             print(f"New line item: {line_item}")
             line_item.save()
 

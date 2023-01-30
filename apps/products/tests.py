@@ -43,9 +43,7 @@ def test_does_not_make_unnecessary_queries(client, django_assert_max_num_queries
 
 
 class TestPerfViews:
-    def test_does_not_make_unnecessary_queries(
-        self, client, django_assert_max_num_queries
-    ):
+    def test_does_not_make_unnecessary_queries(self, client, django_assert_max_num_queries):
         with django_assert_max_num_queries(2):
             client.get(reverse("users-list"))
 
@@ -77,9 +75,7 @@ class TestUsersSecondApproachAPI:
 class TestCasePytest(TestCase):
     def setUp(self):
         self.instance = 3
-        User.objects.create(
-            username="test", email="test@gmail.com", password="password"
-        )
+        User.objects.create(username="test", email="test@gmail.com", password="password")
 
     def test_setup_works(self):
         assert self.instance == 3

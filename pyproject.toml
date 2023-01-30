@@ -1,0 +1,17 @@
+[tool.black]
+line-length = 150
+exclude = '''
+/(
+  | migrations
+  | venv
+)/
+'''
+
+[tool.isort]
+profile = "black"
+atomic = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "django_playground.settings"
+minversion = "6.0"
+addopts = "--reuse-db"
